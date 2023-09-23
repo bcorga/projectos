@@ -21,8 +21,10 @@ import javax.swing.ImageIcon;
 import java.awt.Color;
 import javax.swing.SwingConstants;
 import java.awt.Window.Type;
+import java.awt.event.KeyListener;
+import java.awt.event.KeyEvent;
 
-public class algoritmoPlanificacionFrame extends JFrame implements ActionListener{
+public class algoritmoPlanificacionFrame extends JFrame implements ActionListener, KeyListener{
 
 	private static final long serialVersionUID = 1L;
 	static int disk_size = 200;
@@ -35,6 +37,8 @@ public class algoritmoPlanificacionFrame extends JFrame implements ActionListene
 	private JTextField txtHead;
 	private JButton btnSSTF;
 	private JButton btnSCAN;
+	private JButton btnCSCAN;
+	private JButton btnLOOK;
 
 	/**
 	 * Launch the application.
@@ -91,12 +95,14 @@ public class algoritmoPlanificacionFrame extends JFrame implements ActionListene
 		btnSCAN.setBounds(30, 267, 118, 35);
 		contentPane.add(btnSCAN);
 		
-		JButton btnCSCAN = new JButton("CSCAN");
+		btnCSCAN = new JButton("CSCAN");
+		btnCSCAN.addActionListener(this);
 		btnCSCAN.setFont(new Font("Tahoma", Font.BOLD, 11));
 		btnCSCAN.setBounds(30, 313, 118, 35);
 		contentPane.add(btnCSCAN);
 		
-		JButton btnLOOK = new JButton("LOOK");
+		btnLOOK = new JButton("LOOK");
+		btnLOOK.addActionListener(this);
 		btnLOOK.setFont(new Font("Tahoma", Font.BOLD, 11));
 		btnLOOK.setBounds(30, 359, 118, 35);
 		contentPane.add(btnLOOK);
@@ -110,6 +116,7 @@ public class algoritmoPlanificacionFrame extends JFrame implements ActionListene
 		scp.setViewportView(txtRespuesta);
 		
 		txtPeticiones = new JTextField();
+		txtPeticiones.addKeyListener(this);
 		txtPeticiones.setBounds(268, 111, 468, 20);
 		contentPane.add(txtPeticiones);
 		txtPeticiones.setColumns(10);
@@ -123,6 +130,7 @@ public class algoritmoPlanificacionFrame extends JFrame implements ActionListene
 		contentPane.add(lblCantPeticiones);
 		
 		txtCantPeticiones = new JTextField();
+		txtCantPeticiones.addKeyListener(this);
 		txtCantPeticiones.setBounds(478, 78, 50, 20);
 		contentPane.add(txtCantPeticiones);
 		txtCantPeticiones.setColumns(10);
@@ -132,6 +140,7 @@ public class algoritmoPlanificacionFrame extends JFrame implements ActionListene
 		contentPane.add(lblNewLabel);
 		
 		txtHead = new JTextField();
+		txtHead.addKeyListener(this);
 		txtHead.setBounds(277, 78, 41, 20);
 		contentPane.add(txtHead);
 		txtHead.setColumns(10);
@@ -145,6 +154,12 @@ public class algoritmoPlanificacionFrame extends JFrame implements ActionListene
 	
 	// Direcciona eventos de tipo ActionEvent
 		public void actionPerformed(ActionEvent arg0) {
+			if (arg0.getSource() == btnLOOK) {
+				btnLOOKActionPerformed(arg0);
+			}
+			if (arg0.getSource() == btnCSCAN) {
+				btnCSCANActionPerformed(arg0);
+			}
 			if (arg0.getSource() == btnSCAN) {
 				btnSCANActionPerformed(arg0);
 			}
@@ -162,7 +177,7 @@ public class algoritmoPlanificacionFrame extends JFrame implements ActionListene
 		
 		int size = Integer.valueOf(txtCantPeticiones.getText());
 		int head = Integer.valueOf(txtHead.getText());
-		String peticiones = txtPeticiones.getText();
+		String peticiones = txtPeticiones.getText().replaceAll("\\s","");
 		
 		String [] lista = peticiones.split(",");
 		try {
@@ -245,60 +260,66 @@ public class algoritmoPlanificacionFrame extends JFrame implements ActionListene
 	protected void btnSSTFActionPerformed(ActionEvent arg0) {
 		
 		int head = Integer.valueOf(txtHead.getText());
-		String peticiones = txtPeticiones.getText();
+		String peticiones = txtPeticiones.getText().replaceAll("\\s","");
 		
 		String [] request = peticiones.split(",");
 		
-		
-		if (request.length == 0)
-			return;
+		try {
+			if (request.length == 0)
+				return;
+				
+			// create array of objects of class node
+			node diff[] = new node[request.length];
 			
-		// create array of objects of class node
-		node diff[] = new node[request.length];
-		
-		// initialize array
-		for (int i = 0; i < diff.length; i++)
-		
-			diff[i] = new node();
-		
-		// count total number of seek operation
-		int seek_count = 0;
-		
-		// stores sequence in which disk access is done
-		int[] seek_sequence = new int[request.length + 1];
-		
-		for (int i = 0; i < request.length; i++) {
+			// initialize array
+			for (int i = 0; i < diff.length; i++)
 			
-			seek_sequence[i] = head;
-			calculateDifference(request, head, diff);
+				diff[i] = new node();
 			
-			int index = findMin(diff);
+			// count total number of seek operation
+			int seek_count = 0;
 			
-			diff[index].accessed = true;
+			// stores sequence in which disk access is done
+			int[] seek_sequence = new int[request.length + 1];
 			
-			// increase the total count
-			seek_count += diff[index].distance;
+			for (int i = 0; i < request.length; i++) {
+				
+				seek_sequence[i] = head;
+				calculateDifference(request, head, diff);
+				
+				int index = findMin(diff);
+				
+				diff[index].accessed = true;
+				
+				// increase the total count
+				seek_count += diff[index].distance;
+				
+				// accessed track is now new head
+				head = Integer.parseInt(request[index]);
+			}
 			
-			// accessed track is now new head
-			head = Integer.parseInt(request[index]);
+			// for last accessed track
+			seek_sequence[seek_sequence.length - 1] = head;
+			
+			System.out.println("Total number of seek operations = "
+														+ seek_count);
+														
+			System.out.println("Seek Sequence is");
+			txtRespuesta.setText("RESPUESTA DE PETICIONES \n");
+			txtRespuesta.append("Total seek time : " + seek_count + "\n");
+			txtRespuesta.append("La secuencia es la siguiente : " + "\n");
+			
+			// print the sequence
+			for (int i = 0; i < seek_sequence.length; i++) {
+				System.out.println(seek_sequence[i]);
+			txtRespuesta.append(seek_sequence[i]+ "\n");
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+			txtRespuesta.setText(e.getMessage());
 		}
 		
-		// for last accessed track
-		seek_sequence[seek_sequence.length - 1] = head;
-		
-		System.out.println("Total number of seek operations = "
-													+ seek_count);
-													
-		System.out.println("Seek Sequence is");
-		txtRespuesta.setText("RESPUESTA DE PETICIONES \n");
-		txtRespuesta.append("Total seek time : " + seek_count + "\n");
-		txtRespuesta.append("La secuencia es la siguiente : " + "\n");
-		
-		// print the sequence
-		for (int i = 0; i < seek_sequence.length; i++) {
-			System.out.println(seek_sequence[i]);
-		txtRespuesta.append(seek_sequence[i]+ "\n");
-		}
 		
 	}
 	protected void btnSCANActionPerformed(ActionEvent arg0) {
@@ -307,7 +328,7 @@ public class algoritmoPlanificacionFrame extends JFrame implements ActionListene
 		try {
 			int size = Integer.valueOf(txtCantPeticiones.getText());
 			int head = Integer.valueOf(txtHead.getText());
-			String peticiones = txtPeticiones.getText();
+			String peticiones = txtPeticiones.getText().replaceAll("\\s","");
 			
 			String [] arr = peticiones.split(",");
 
@@ -405,5 +426,233 @@ public class algoritmoPlanificacionFrame extends JFrame implements ActionListene
 			txtRespuesta.setText(e.getMessage());
 		}
 		
+	}
+	protected void btnCSCANActionPerformed(ActionEvent arg0) {
+		
+		int size = Integer.valueOf(txtCantPeticiones.getText());
+		int head = Integer.valueOf(txtHead.getText());
+		String peticiones = txtPeticiones.getText().replaceAll("\\s","");
+		
+		String [] arr = peticiones.split(",");				
+		int seek_count = 0;
+		int distance, cur_track;
+
+		try {
+			Vector<Integer> left = new Vector<Integer>();
+			Vector<Integer> right = new Vector<Integer>();
+			Vector<Integer> seek_sequence
+				= new Vector<Integer>();
+
+			// Appending end values which has
+			// to be visited before reversing
+			// the direction
+			left.add(0);
+			right.add(disk_size - 1);
+
+			// Tracks on the left of the
+			// head will be serviced when
+			// once the head comes back
+			// to the beginning (left end).
+			for (int i = 0; i < size; i++) {
+				if (Integer.parseInt(arr[i]) < head)
+					left.add(Integer.parseInt(arr[i]));
+				if (Integer.parseInt(arr[i]) > head)
+					right.add(Integer.parseInt(arr[i]));
+			}
+
+			// Sorting left and right vectors
+			Collections.sort(left);
+			Collections.sort(right);
+
+			// First service the requests
+			// on the right side of the
+			// head.
+			for (int i = 0; i < right.size(); i++) {
+				cur_track = right.get(i);
+
+				// Appending current track to seek sequence
+				seek_sequence.add(cur_track);
+
+				// Calculate absolute distance
+				distance = Math.abs(cur_track - head);
+
+				// Increase the total count
+				seek_count += distance;
+
+				// Accessed track is now new head
+				head = cur_track;
+			}
+
+			// Once reached the right end
+			// jump to the beginning.
+			head = 0;
+
+			// adding seek count for head returning from 199 to
+			// 0
+			seek_count += (disk_size - 1);
+
+			// Now service the requests again
+			// which are left.
+			for (int i = 0; i < left.size(); i++) {
+				cur_track = left.get(i);
+
+				// Appending current track to
+				// seek sequence
+				seek_sequence.add(cur_track);
+
+				// Calculate absolute distance
+				distance = Math.abs(cur_track - head);
+
+				// Increase the total count
+				seek_count += distance;
+
+				// Accessed track is now the new head
+				head = cur_track;
+			}
+
+			System.out.println("Total number of seek "
+							+ "operations = " + seek_count);
+
+			System.out.println("Seek Sequence is");
+			txtRespuesta.setText("RESPUESTA DE PETICIONES \n");
+			txtRespuesta.append("Total seek time : " + seek_count + "\n");
+			txtRespuesta.append("La secuencia es la siguiente : " + "\n");
+			
+			for (int i = 0; i < seek_sequence.size(); i++) {
+				System.out.println(seek_sequence.get(i));
+				txtRespuesta.append(seek_sequence.get(i)+ "\n");
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
+			txtRespuesta.setText(e.getMessage());
+		}
+		
+	}
+	protected void btnLOOKActionPerformed(ActionEvent arg0) {
+		
+		int size = Integer.valueOf(txtCantPeticiones.getText());
+		int head = Integer.valueOf(txtHead.getText());
+		String peticiones = txtPeticiones.getText().replaceAll("\\s","");
+		
+		String [] arr = peticiones.split(",");	
+		int seek_count = 0;
+		int distance, cur_track;
+		
+		try {
+			Vector<Integer> left = new Vector<Integer>();
+			Vector<Integer> right = new Vector<Integer>();
+			Vector<Integer> seek_sequence = new Vector<Integer>();
+
+			// Tracks on the left of the
+			// head will be serviced when
+			// once the head comes back
+			// to the beginning (left end)
+			for(int i = 0; i < size; i++)
+			{
+				if (Integer.parseInt(arr[i]) < head)
+					left.add(Integer.parseInt(arr[i]));
+				if (Integer.parseInt(arr[i]) > head)
+					right.add(Integer.parseInt(arr[i]));
+			}
+
+			// Sorting left and right vectors
+			Collections.sort(left);
+			Collections.sort(right);
+
+			// First service the requests
+			// on the right side of the
+			// head
+			for(int i = 0; i < right.size(); i++)
+			{
+				cur_track = right.get(i);
+
+				// Appending current track
+				// to seek sequence
+				seek_sequence.add(cur_track);
+
+				// Calculate absolute distance
+				distance = Math.abs(cur_track - head);
+
+				// Increase the total count
+				seek_count += distance;
+
+				// Accessed track is now new head
+				head = cur_track;
+			}
+
+			// Once reached the right end
+			// jump to the last track that
+			// is needed to be serviced in
+			// left direction
+			seek_count += Math.abs(head - left.get(0));
+			head = left.get(0);
+
+			// Now service the requests again
+			// which are left
+			for(int i = 0; i < left.size(); i++)
+			{
+				cur_track = left.get(i);
+
+				// Appending current track to
+				// seek sequence
+				seek_sequence.add(cur_track);
+
+				// Calculate absolute distance
+				distance = Math.abs(cur_track - head);
+
+				// Increase the total count
+				seek_count += distance;
+
+				// Accessed track is now the new head
+				head = cur_track;
+			}
+			
+			System.out.println("Total number of seek " +
+							"operations = " + seek_count);
+
+			System.out.println("Seek Sequence is");
+
+			txtRespuesta.setText("RESPUESTA DE PETICIONES \n");
+			txtRespuesta.append("Total seek time : " + seek_count + "\n");
+			txtRespuesta.append("La secuencia es la siguiente : " + "\n");
+			
+			for(int i = 0; i < seek_sequence.size(); i++)
+			{
+				System.out.println(seek_sequence.get(i));
+				txtRespuesta.append(seek_sequence.get(i)+ "\n");
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
+			txtRespuesta.setText(e.getMessage());
+		}
+		
+	}
+	public void keyPressed(KeyEvent e) {
+	}
+	public void keyReleased(KeyEvent e) {
+	}
+	public void keyTyped(KeyEvent e) {
+		if (e.getSource() == txtCantPeticiones) {
+			txtCantPeticionesKeyTyped(e);
+		}
+		if (e.getSource() == txtHead) {
+			txtHeadKeyTyped(e);
+		}
+		if (e.getSource() == txtPeticiones) {
+			txtPeticionesKeyTyped(e);
+		}
+	}
+	protected void txtPeticionesKeyTyped(KeyEvent e) {
+		int key = e.getKeyChar();
+
+		if((key<'0' || key>'9') && (key<',' || key>',')) e.consume();
+	}
+	protected void txtHeadKeyTyped(KeyEvent e) {
+		char car = e.getKeyChar();
+		if((car<'0' || car>'9')) e.consume();
+	}
+	protected void txtCantPeticionesKeyTyped(KeyEvent e) {
+		char car = e.getKeyChar();
+		if((car<'0' || car>'9')) e.consume();
 	}
 }
